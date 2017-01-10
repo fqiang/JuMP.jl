@@ -273,14 +273,14 @@ function MathProgBase.initialize(d::NLPEvaluator, requested_features::Vector{Sym
         push!(main_expressions,nlconstr.terms.nd)
     end
     d.subexpression_order, individual_order = order_subexpressions(main_expressions,subexpr)
-    if :ExprGraph in requested_features
-        d.subexpressions_as_julia_expressions = Array(Any,length(subexpr))
-        for k in d.subexpression_order
-            ex = nldata.nlexpr[k]
-            adj = adjmat(ex.nd)
-            d.subexpressions_as_julia_expressions[k] = tapeToExpr(1, ex.nd, adj, ex.const_values, d.parameter_values, d.subexpressions_as_julia_expressions)
-        end
-    end
+    # if :ExprGraph in requested_features
+    #     d.subexpressions_as_julia_expressions = Array(Any,length(subexpr))
+    #     for k in d.subexpression_order
+    #         ex = nldata.nlexpr[k]
+    #         adj = adjmat(ex.nd)
+    #         d.subexpressions_as_julia_expressions[k] = tapeToExpr(1, ex.nd, adj, ex.const_values, d.parameter_values, d.subexpressions_as_julia_expressions)
+    #     end
+    # end
 
     d.subexpression_linearity = Array(Linearity, length(nldata.nlexpr))
     subexpression_variables = Array(Vector{Int}, length(nldata.nlexpr))
@@ -323,6 +323,18 @@ function MathProgBase.initialize(d::NLPEvaluator, requested_features::Vector{Sym
         end
 
     end
+
+     if :ExprGraph in requested_features
+         d.subexpressions_as_julia_expressions = Array(Any,length(subexpr))
+         for k in d.subexpression_order
+             if d.subexpression_linearity[k] != CONSTANT || !SIMPLIFY
+                 ex = d.subexpressions[k]
+                 d.subexpressions_as_julia_expressions[k] = tapeToExpr(1, ex.nd, ex.adj, ex.const_values, d.parameter_values, d.subexpressions_as_julia_expressions)
+             else
+                 d.subexpressions_as_julia_expressions[k] = d.subexpression_forward_values[k]
+             end
+         end
+     end
 
     if SIMPLIFY
         main_expressions = Array(Vector{NodeData},0)
